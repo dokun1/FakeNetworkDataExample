@@ -13,7 +13,6 @@ protocol NetworkSession {
 
 enum MockSessionError: Error {
   case badPath
-  case badURL
   case badData
 }
 
@@ -49,11 +48,7 @@ struct APIResponse: Codable {
 }
 
 struct ContentView: View {
-  func makeRequest(useRealNetwork: Bool = true) async {
-    var session: NetworkSession = URLSession.shared
-    if !useRealNetwork {
-      session = MockSession()
-    }
+  func makeRequest() async {
     guard let url = URL(string: "https://jsonplaceholder.typicode.com/todos/1") else {
       response = "error"
       return
@@ -70,6 +65,7 @@ struct ContentView: View {
   @State var useFakeNetwork = false
   @State var isLoading = false
   @State var response: String? = nil
+  @State var session: any NetworkSession = URLSession.shared
   
   var body: some View {
     VStack {
@@ -79,9 +75,9 @@ struct ContentView: View {
       .padding()
       Button {
         Task {
-          isLoading = true
-          await makeRequest(useRealNetwork: useFakeNetwork)
-          isLoading = false
+          isLoading.toggle()
+          await makeRequest()
+          isLoading.toggle()
         }
       } label: {
         Text(isLoading ? "Loading data..." : "Make GET Request")
@@ -91,6 +87,9 @@ struct ContentView: View {
       }
     }
     .padding()
+    .onChange(of: useFakeNetwork) { newValue in
+      self.session = newValue ? URLSession.shared : MockSession()
+    }
   }
 }
 
